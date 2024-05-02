@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Address Selection</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js" referrerpolicy="no-referrer"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/axios/0.21.1/axios.min.js"></script>
+</head>
+<body>
+
+<div>
+  <select id="city">
+    <option value="" selected>Chọn tỉnh thành</option>           
+  </select>
+          
+  <select id="district">
+    <option value="" selected>Chọn quận huyện</option>
+  </select>
+
+  <select id="ward">
+    <option value="" selected>Chọn phường xã</option>
+  </select>
+</div>
+
+<h2 id="result"></h2>
+
+<script>
+const host = "https://vietnamese-administration.vercel.app/";
+
+// Function to fetch all cities
+var getAllCities = () => {
+  return axios.get(host + "city")
+    .then((response) => {
+      renderData(response.data, "city");
+    });
+}
+
+// Function to fetch districts based on cityId
+var getDistrictsByCityId = (cityId) => {
+  return axios.get(host + "district")
+    .then((response) => {
+      const districts = response.data.filter(district => district.cityId === cityId);
+      renderData(districts, "district");
+    });
+}
+
+// Function to fetch wards based on districtId
+var getWardsByDistrictId = (districtId) => {
+  return axios.get(host + "ward?districtId=" + districtId)
+    .then((response) => {
+      renderData(response.data, "ward");
+    });
+}
+
+// Function to render data in dropdown
+var renderData = (array, select) => {
+  let defaultOption = '';
+  switch(select) {
+    case 'city':
+      defaultOption = 'Chọn tỉnh thành';
+      break;
+    case 'district':
+      defaultOption = 'Chọn quận huyện';
+      break;
+    case 'ward':
+      defaultOption = 'Chọn phường xã';
+      break;
+    default:
+      defaultOption = 'Chọn';
+      break;
+  }
+  
+  let row = ` <option disable value="">${defaultOption}</option>`;
+  array.forEach(element => {
+    let id = '';
+    switch(select) {
+      case 'city':
+        id = element.cityId;
+        break;
+      case 'district':
+        id = element.districtId;
+        break;
+      case 'ward':
+        id = element.wardId;
+        break;
+    }
+    row += `<option data-id="${id}" value="${id}">${element.name}</option>`;
+  });
+  document.querySelector("#" + select).innerHTML = row;
+}
+
+// Event listener for city change
+$("#city").change(() => {
+  const cityId = $("#city").val();
+  if (cityId !== "") {
+    getDistrictsByCityId(cityId);
+    // Reset district and ward dropdowns to default
+    $("#district").html('<option value="" selected>Chọn quận huyện</option>');
+    $("#ward").html('<option value="" selected>Chọn phường xã</option>');
+  } else {
+    $("#district").html('<option value="" selected>Chọn quận huyện</option>');
+    $("#ward").html('<option value="" selected>Chọn phường xã</option>');
+  }
+  printResult();
+});
+
+// Event listener for district change
+$("#district").change(() => {
+  const districtId = $("#district").val();
+  if (districtId !== "") {
+    getWardsByDistrictId(districtId);
+  } else {
+    $("#ward").html('<option value="" selected>Chọn phường xã</option>');
+  }
+  printResult();
+});
+
+// Event listener for ward change
+$("#ward").change(() => {
+  printResult();
+});
+
+// Function to display selected address
+var printResult = () => {
+  const city = $("#city option:selected").text();
+  const district = $("#district option:selected").text();
+  const ward = $("#ward option:selected").text();
+  
+  if (city && district && ward) {
+    let result = city + " | " + district + " | " + ward;
+    $("#result").text(result);
+  }
+}
+
+// Initialize by fetching all cities
+getAllCities();
+</script>
+
+</body>
+</html>
